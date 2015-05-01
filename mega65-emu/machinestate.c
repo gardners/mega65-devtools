@@ -20,6 +20,15 @@
 
 */
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 #include "mega65.h"
 
 struct mega65_machine_state *machine=NULL;
+
+struct mega65_machine_state *mega65_new_machine()
+{
+  struct mega65_machine_state *machine = calloc(sizeof(struct mega65_machine_state),1);
+  assert(machine);
+  return machine;
+}

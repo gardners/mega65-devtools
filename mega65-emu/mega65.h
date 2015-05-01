@@ -53,13 +53,28 @@ struct viciv_state {
 };
 
 struct mega65_machine_state {
-  // Memory arrays
-  unsigned char chipram[128*1024];
-  unsigned char shadowram[128*1024];
-  unsigned char romram[128*1024];
-  unsigned char colourram[32*1024];
+  // Memory arrays.
+  // Lower 8 bits are contents.
+  // Upper 8 bits are flags, e.g., for breakpoints and watchpoints.
+  unsigned short chipram[128*1024];
+  unsigned short shadowram[128*1024];
+  unsigned short romram[128*1024];
+  unsigned short colourram[32*1024];
+  unsigned short hypervisor[16*1024];
 
   struct gs4510_cpu_state cpu_state;
 
   struct viciv_state viciv_state;
+
+  // Time point of each major component of the machine
+  long long cpu_time;
+  long long clock_time;
+  long long viciv_time;
+  long long ethernet_time;
 };
+
+extern struct mega65_machine_state *machine;
+
+struct mega65_machine_state *mega65_new_machine();
+int gs4510_next_instruction(struct mega65_machine_state *machine);
+int mega65_advance_clock(struct mega65_machine_state *machine, int ns);

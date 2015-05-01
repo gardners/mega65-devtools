@@ -19,3 +19,12 @@
 -- *  02111-1307  USA.
 
 */
+
+int gs4510_next_instruction(struct mega65_machine_state *machine)
+{
+
+  // XXX - Advance machine->cpu_clock
+  // XXX - Call mega65_advance_clock()
+  
+  return 0;
+}

@@ -1,5 +1,5 @@
 /*
-  MEGA65 Partial emulator main function.
+  MEGA65 Partial emulator clock function
 
   (C) Copyright Paul Gardner-Stephen 2015.
 
@@ -20,35 +20,18 @@
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
 #include "mega65.h"
 
-int usage()
+// Called by the CPU whenever it wants to advance the machine clock.
+int mega65_advance_clock(struct mega65_machine_state *machine, int ns)
 {
-  fprintf(stderr,
-	  "MEGA65 Partial Emulator for software developers.\n"
-	  "\n"
-	  "usage: mega65-emu\n"
-	  );
-  exit(-1);
-}
+  machine->clock_time+=ns;
 
-int main(int argc,char **argv)
-{
-  if (argc>1) usage();
-
-  // Create new machine instance
-  machine = mega65_new_machine();
-  assert(machine);
-
-  // Run machine.
-  // CPU triggers VIC-IV and other component cycles as apparent time elapses
-  // by calling mega65_cpu_time_elapsed(nanoseconds)
-  while(1) {
-    gs4510_next_instruction(machine);
+  while(machine->viciv_time<machine->clock_time) {
+    viciv_docycle(machine);
   }
-
+  while(machine->ethernet_time<machine->clock_time) {
+    ethernet_docycle(machine);
+  }
   return 0;
 }
