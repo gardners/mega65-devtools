@@ -7,7 +7,8 @@ OBJS=	machinestate.o \
 	main.o \
 	gs4510.o \
 	viciv.o \
-	instruction_names.o
+	instruction_names.o \
+	instruction_table.o
 
 CC=	gcc
 CFLAGS= -Wall -O3 -g
@@ -26,4 +27,7 @@ instructions.h:	Makefile 64net.opc mkinstructions
 	./mkinstructions
 
 instruction_names.c:	Makefile 64net.opc mkinstructions
+	./mkinstructions
+
+instruction_table.c:	Makefile 64net.opc mkinstructions
 	./mkinstructions

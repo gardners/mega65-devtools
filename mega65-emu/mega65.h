@@ -78,3 +78,24 @@ extern struct mega65_machine_state *machine;
 struct mega65_machine_state *mega65_new_machine();
 int gs4510_next_instruction(struct mega65_machine_state *machine);
 int mega65_advance_clock(struct mega65_machine_state *machine, int ns);
+
+#define addressmode_ 0
+#define addressmode__nnX_ 1
+#define addressmode_nn 2
+#define addressmode_Inn 3
+#define addressmode_A 4
+#define addressmode_nnnn 5
+#define addressmode_rr 6
+#define addressmode__nn_Y 7
+#define addressmode_nnrr 8
+#define addressmode_nnnnX 9
+#define addressmode_nnnnY 10
+#define addressmode_nnX 11
+#define addressmode_nnY 12
+#define addressmode__nnnn_ 13
+#define addressmode__nnnnX_ 14
+#define addressmode_rrrr 15
+#define addressmode__nn_Z 16
+#define addressmode__nnSP_Y 17
+#define addressmode_Innnn 18
+

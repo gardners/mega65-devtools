@@ -4,6 +4,11 @@ echo 'struct instruction_name {' >> instructions.h
 echo '  int id;' >> instructions.h
 echo '  char *name;' >> instructions.h
 echo '};' >> instructions.h
+echo 'struct opcode {' >> instructions.h
+echo '  int op;' >> instructions.h
+echo '  int mode;' >> instructions.h
+echo '  int flags; // debugging flags, e.g., stop on instruction' >> instructions.h
+echo '};' >> instructions.h
 
 # Generate instruction name table
 echo '#include <stdio.h>' > instruction_names.c
@@ -12,3 +17,11 @@ echo 'struct instruction_name instruction_names[] = {' >> instruction_names.c
 cut -c6-8 64net.opc | sort -u | awk '{ printf("{INSTR_%s,\"%s\"},\n",$1,$1); n++; }' >> instruction_names.c
 echo '{-1,NULL},' >> instruction_names.c
 echo '};' >> instruction_names.c
+
+# Generate instruction decode table
+echo '#include <stdio.h>' > instruction_table.c
+echo '#include "mega65.h"' >> instruction_table.c
+echo '#include "instructions.h"' >> instruction_table.c
+echo 'struct opcode instruction_table[] = {' >> instruction_table.c
+cat 64net.opc  | sed 's/[\(\)]/_/g' | sed s'/#/I/g' | sed s'/[\$,]//g' | sed 's/S[01234567]/S/g' | sed 's/R[01234567]/R/g' | sed s'/B[01234567]/B/g' | awk ' { printf("  {INSTR_%s, addressmode_%s,0},\n",$2,$3); }' >> instruction_table.c
+echo '};' >> instruction_table.c
