@@ -1,11 +1,13 @@
 LIBVNCSERVERCONFIG=/Users/gardners/Projects/c64accel/git/libvncserver/libvncserver-config
 
 HDRS=	Makefile \
-	mega65.h 
+	mega65.h \
+	instructions.h
 OBJS=	machinestate.o \
 	main.o \
 	gs4510.o \
-	viciv.o
+	viciv.o \
+	instruction_names.o
 
 CC=	gcc
 CFLAGS= -Wall -O3 -g
@@ -19,3 +21,9 @@ mega65-emu:	$(OBJS) $(HDRS)
 
 %.o:	%.c $(HDRS)
 	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+
+instructions.h:	Makefile 64net.opc mkinstructions
+	./mkinstructions
+
+instruction_names.c:	Makefile 64net.opc mkinstructions
+	./mkinstructions

@@ -20,6 +20,14 @@
 
 */
 
+#include "mega65.h"
+#include "instructions.h"
+
+struct instruction_set {
+  unsigned char instruction;
+  unsigned char addressing_mode;
+};
+
 int gs4510_next_instruction(struct mega65_machine_state *machine)
 {
 

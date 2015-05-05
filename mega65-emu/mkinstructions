@@ -1,0 +1,14 @@
+# Generate instruction ID table and declare structure for instruction names
+cut -c6-8 64net.opc | sort -u | awk '{ printf("#define INSTR_%s %d\n",$1,n); n++; }' > instructions.h
+echo 'struct instruction_name {' >> instructions.h
+echo '  int id;' >> instructions.h
+echo '  char *name;' >> instructions.h
+echo '};' >> instructions.h
+
+# Generate instruction name table
+echo '#include <stdio.h>' > instruction_names.c
+echo '#include "instructions.h"' >> instruction_names.c
+echo 'struct instruction_name instruction_names[] = {' >> instruction_names.c
+cut -c6-8 64net.opc | sort -u | awk '{ printf("{INSTR_%s,\"%s\"},\n",$1,$1); n++; }' >> instruction_names.c
+echo '{-1,NULL},' >> instruction_names.c
+echo '};' >> instruction_names.c
