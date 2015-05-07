@@ -4,11 +4,6 @@ echo 'struct instruction_name {' >> instructions.h
 echo '  int id;' >> instructions.h
 echo '  char *name;' >> instructions.h
 echo '};' >> instructions.h
-echo 'struct opcode {' >> instructions.h
-echo '  int op;' >> instructions.h
-echo '  int mode;' >> instructions.h
-echo '  int flags; // debugging flags, e.g., stop on instruction' >> instructions.h
-echo '};' >> instructions.h
 
 # Generate instruction name table
 echo '#include <stdio.h>' > instruction_names.c
