@@ -19,3 +19,13 @@
 -- *  02111-1307  USA.
 
 */
+#include "mega65.h"
+
+int viciv_reset(struct mega65_machine_state *machine)
+{
+  machine->viciv_state.viciii_iomode=0x3;
+  machine->viciv_state.rom_at_e000=0;
+  machine->viciv_state.rom_at_c000=0;
+  machine->viciv_state.rom_at_8000=0;
+  return 0;
+}

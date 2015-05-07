@@ -30,5 +30,13 @@ struct mega65_machine_state *mega65_new_machine()
 {
   struct mega65_machine_state *machine = calloc(sizeof(struct mega65_machine_state),1);
   assert(machine);
+  mega65_reset(machine);
   return machine;
+}
+
+int mega65_reset(struct mega65_machine_state *machine)
+{
+  gs4510_reset(machine);
+  viciv_reset(machine);
+  return 0;
 }

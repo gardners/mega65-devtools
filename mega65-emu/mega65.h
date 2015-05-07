@@ -50,7 +50,8 @@ struct gs4510_cpu_state {
   unsigned char map_hi_mb;
 
   // XXX - Hypervisor and other stuff to add here
-
+  int hypervisor_mode;
+  
 };
 
 struct viciv_state {
@@ -92,6 +93,10 @@ extern struct opcode instruction_table[];
 struct mega65_machine_state *mega65_new_machine();
 int gs4510_next_instruction(struct mega65_machine_state *machine);
 int mega65_advance_clock(struct mega65_machine_state *machine, int ns);
+int mega65_reset(struct mega65_machine_state *machine);
+int gs4510_reset(struct mega65_machine_state *machine);
+int viciv_reset(struct mega65_machine_state *machine);
+
 
 #define addressmode_ 0
 #define addressmode__nnX_ 1
@@ -123,3 +128,12 @@ int mega65_advance_clock(struct mega65_machine_state *machine, int ns);
 
 #define MEMORY_READ 0
 #define MEMORY_WRITE 1
+
+#define CPUFLAG_N 0x80
+#define CPUFLAG_V 0x40
+#define CPUFLAG_E 0x20
+#define CPUFLAG_B 0x10
+#define CPUFLAG_D 0x08
+#define CPUFLAG_I 0x04
+#define CPUFLAG_Z 0x02
+#define CPUFLAG_C 0x01

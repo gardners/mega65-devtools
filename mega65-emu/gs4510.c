@@ -150,3 +150,46 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
 
   return 0;
 }
+
+int gs4510_setup_hypervisor_entry(struct mega65_machine_state *machine,
+				  int trap)
+{
+  // Hypervisor entry point
+  machine->cpu_state.pc=0x8000+(trap<<2);
+  // Hypervisor mode
+  machine->cpu_state.hypervisor_mode=1;
+
+  // MAP 16KB hypervisor ROM/RAM
+  machine->cpu_state.map_hi_offset=0xf00;
+  machine->cpu_state.map_hi_bitmask=0x3;
+  machine->cpu_state.map_hi_mb=0xff;
+
+  // Point B and SP to the end of the 16KB of hypervisor ROM/RAM
+  machine->cpu_state.b=0xbf;
+  machine->cpu_state.sph=0xbe;
+
+  // Set 8-bit stack and set I to disable further interrupts
+  machine->cpu_state.flags|=CPUFLAG_I|CPUFLAG_E;
+
+  // Enable MEGA65 IO
+  machine->viciv_state.viciii_iomode=3;
+
+  return 0;
+}
+
+int gs4510_reset(struct mega65_machine_state *machine)
+{
+  // Why on earth do we preset the low map with the following?
+  machine->cpu_state.map_lo_offset=0x000;
+  machine->cpu_state.map_lo_bitmask=0x4;
+  machine->cpu_state.map_lo_mb=0x80;
+
+  machine->cpu_state.flags=CPUFLAG_I|CPUFLAG_E;
+  machine->cpu_state.sph=0x01;
+  machine->cpu_state.spl=0xff;
+  
+  machine->cpu_state.cpuport_value=0x35;
+  machine->cpu_state.cpuport_ddr=0xff;
+  
+  gs4510_setup_hypervisor_entry(machine,0x40);
+}
