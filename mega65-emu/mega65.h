@@ -19,6 +19,11 @@
 -- *  02111-1307  USA.
 
 */
+struct opcode {
+  int op;
+  int mode;
+  int flags; // debugging flags, e.g., stop on instruction
+};
 
 struct gs4510_cpu_state {
   // User-visible CPU state
@@ -32,6 +37,9 @@ struct gs4510_cpu_state {
   unsigned char b;
   unsigned char flags;
 
+  unsigned char cpuport_value;
+  unsigned char cpuport_ddr;
+  
   // 4510 MAP state
   unsigned short map_lo_offset;
   unsigned short map_hi_offset;
@@ -42,7 +50,7 @@ struct gs4510_cpu_state {
   unsigned char map_hi_mb;
 
   // XXX - Hypervisor and other stuff to add here
-  
+
 };
 
 struct viciv_state {
@@ -50,6 +58,11 @@ struct viciv_state {
   int frame_y;
 
   // XXX - Lots of registers to add here
+  int viciii_iomode;
+  int rom_at_e000;
+  int rom_at_c000;
+  int rom_at_8000;
+  
 };
 
 struct mega65_machine_state {
@@ -74,6 +87,7 @@ struct mega65_machine_state {
 };
 
 extern struct mega65_machine_state *machine;
+extern struct opcode instruction_table[];
 
 struct mega65_machine_state *mega65_new_machine();
 int gs4510_next_instruction(struct mega65_machine_state *machine);
@@ -99,3 +113,13 @@ int mega65_advance_clock(struct mega65_machine_state *machine, int ns);
 #define addressmode__nnSP_Y 17
 #define addressmode_Innnn 18
 
+// 48MHz = 20.83333333333ns
+#define CPUCLOCK_PS 20833
+// Ethernet clock = 50MHz = 20ns exactly
+#define ETHCLOCK_PS 20000
+// VIC-IV pixel clock = 192MHz = 5.2083ns
+#define VICIVCLOCK_PS 5208
+
+
+#define MEMORY_READ 0
+#define MEMORY_WRITE 1
