@@ -20,8 +20,16 @@
 
 */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include "mega65.h"
 #include "instructions.h"
+
+int gs4510_wait_one_cycle(struct mega65_machine_state *machine)
+{
+  machine->cpu_time+=CPUCLOCK_PS;
+  return 0;
+}
 
 int gs4510_read_memory(struct mega65_machine_state *machine, int long_address)
 {
@@ -142,12 +150,212 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
   // XXX - Call mega65_advance_clock()
 
   int pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
-
+  machine->cpu_state.pc++;
+  
   // gs4510_read_memory() does the advancing of the CPU clock based on the cycles required for the read.
   int opcode = gs4510_read_memory(machine,pc_address)&0xff;
   int instruction = instruction_table[opcode].op;
   int addressing_mode = instruction_table[opcode].mode;
+  int check_interrupts=1;
 
+  int reg_value;
+  int reg_addr;
+  int reg_vector;
+
+  // Get value for operation
+  switch(addressing_mode) {
+  case addressmode_:
+    // Implied mode -- nothing to do
+    // XXX - Most implied mode instructions cannot be followed by an interrupt
+    check_interrupts=0;
+    break;
+  case addressmode_rr: // 8-bit relative mode
+    // Fall through
+  case addressmode_Inn:
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_value = gs4510_read_memory(machine,pc_address)&0xff;
+    reg_addr = -1;
+    break;
+  case addressmode_rrrr:
+    // Fall through
+  case addressmode_Innnn:
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_value = gs4510_read_memory(machine,pc_address)&0xff;
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_value |= (gs4510_read_memory(machine,pc_address)&0xff)<<8;
+    reg_addr = -1;
+    break;
+  case addressmode_nn: // $nn
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    reg_addr |= (machine->cpu_state.b<<8);
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode_A:
+    reg_value = machine->cpu_state.a;
+    reg_addr = -1;
+    break;
+  case addressmode__nnX_: // ($nn,X)
+    // Get 1st argument byte
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    // Calculate address of vector
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    reg_addr += machine->cpu_state.x;
+    reg_addr &= 0xff;
+    reg_addr |= (machine->cpu_state.b<<8);
+    reg_addr = gs4510_resolve_address(machine,reg_addr,MEMORY_READ);
+    gs4510_wait_one_cycle(machine);
+    // Read vector into reg_addr
+    reg_vector = gs4510_read_memory(machine,reg_addr)&0xff;
+    if ((reg_addr&0xff) == 0xff) reg_addr &= 0xff00; else reg_addr++;
+    reg_vector |= (gs4510_read_memory(machine,reg_addr)&0xff)<<8;
+    reg_addr = reg_vector;
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode_nnnn:
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr |= (gs4510_read_memory(machine,pc_address)&0xff)<<8;
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode_nnnnX:
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr |= (gs4510_read_memory(machine,pc_address)&0xff)<<8;
+    reg_addr += machine->cpu_state.x;
+    reg_addr &= 0xffff;
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode_nnnnY:
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr |= (gs4510_read_memory(machine,pc_address)&0xff)<<8;
+    reg_addr += machine->cpu_state.y;
+    reg_addr &= 0xffff;
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode__nn_Y: // ($nn),Y
+    // Get 1st argument byte
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    // Calculate address of vector
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    reg_addr |= (machine->cpu_state.b<<8);
+    reg_addr = gs4510_resolve_address(machine,reg_addr,MEMORY_READ);
+    gs4510_wait_one_cycle(machine);
+    // Read vector into reg_addr
+    reg_vector = gs4510_read_memory(machine,reg_addr)&0xff;
+    if ((reg_addr&0xff) == 0xff) reg_addr &= 0xff00; else reg_addr++;
+    reg_vector |= (gs4510_read_memory(machine,reg_addr)&0xff)<<8;
+    reg_vector = (reg_vector&0xff00)|((reg_vector+machine->cpu_state.y)&0xff);
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode__nn_Z: // ($nn),Z
+    // Get 1st argument byte
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    // Calculate address of vector
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    reg_addr |= (machine->cpu_state.b<<8);
+    reg_addr = gs4510_resolve_address(machine,reg_addr,MEMORY_READ);
+    gs4510_wait_one_cycle(machine);
+    // Read vector into reg_addr
+    reg_vector = gs4510_read_memory(machine,reg_addr)&0xff;
+    if ((reg_addr&0xff) == 0xff) reg_addr &= 0xff00; else reg_addr++;
+    reg_vector |= (gs4510_read_memory(machine,reg_addr)&0xff)<<8;
+    reg_addr = (reg_vector&0xff00)|((reg_vector+machine->cpu_state.z)&0xff);
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode__nnSP_Y:
+    // Get 1st argument byte
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    // Calculate address of vector
+    reg_addr = gs4510_read_memory(machine,pc_address)&0xff;
+    reg_addr += (machine->cpu_state.sph<<8);
+    reg_addr += machine->cpu_state.spl;
+    reg_addr &= 0xffff;
+    reg_addr = gs4510_resolve_address(machine,reg_addr,MEMORY_READ);
+    gs4510_wait_one_cycle(machine);
+    // Read vector into reg_addr
+    reg_vector = gs4510_read_memory(machine,reg_addr)&0xff;
+    if ((reg_addr&0xff) == 0xff) reg_addr &= 0xff00; else reg_addr++;
+    reg_vector |= (gs4510_read_memory(machine,reg_addr)&0xff)<<8;
+    // XXX - 32-bit vector support goes here.
+
+    reg_addr = (reg_vector&0xff00)|((reg_vector+machine->cpu_state.y)&0xff);
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode_nnX:
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr = (gs4510_read_memory(machine,pc_address)+machine->cpu_state.x)&0xff;
+    reg_addr |= (machine->cpu_state.b<<8);
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode_nnY:
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_addr = (gs4510_read_memory(machine,pc_address)+machine->cpu_state.y)&0xff;
+    reg_addr |= (machine->cpu_state.b<<8);
+    gs4510_wait_one_cycle(machine);
+    break;
+  case addressmode__nnnn_:
+    // Get address of vector
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_vector = gs4510_read_memory(machine,pc_address)&0xff;
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_vector |= (gs4510_read_memory(machine,pc_address)&0xff)<<8;
+    // Now read the two bytes at that location
+    reg_addr = gs4510_resolve_address(machine,reg_vector,MEMORY_READ);
+    reg_value = gs4510_read_memory(machine,reg_addr)&0xff;
+    reg_vector++; reg_vector &= 0xffff;
+    reg_addr = gs4510_resolve_address(machine,reg_vector,MEMORY_READ);
+    reg_addr = reg_value | ((gs4510_read_memory(machine,reg_addr)&0xff)<<8);
+    // XXX - 32-bit jmp/jsr support goes here
+    break;
+  case addressmode__nnnnX_:
+    // Get address of vector
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_vector = gs4510_read_memory(machine,pc_address)&0xff;
+    pc_address = gs4510_resolve_address(machine,machine->cpu_state.pc,MEMORY_READ);
+    machine->cpu_state.pc++;
+    reg_vector |= (gs4510_read_memory(machine,pc_address)&0xff)<<8;
+    reg_vector += machine->cpu_state.x;
+    reg_vector &= 0xffff;
+    // Now read the two bytes at that location
+    reg_addr = gs4510_resolve_address(machine,reg_vector,MEMORY_READ);
+    reg_value = gs4510_read_memory(machine,reg_addr)&0xff;
+    reg_vector++; reg_vector &= 0xffff;
+    reg_addr = gs4510_resolve_address(machine,reg_vector,MEMORY_READ);
+    reg_addr = reg_value | ((gs4510_read_memory(machine,reg_addr)&0xff)<<8);
+    // XXX - 32-bit jmp/jsr support goes here
+    break;
+  case addressmode_nnrr:
+  default:
+    fprintf(stderr,"Addressing mode 0x%02x not supported.\n",
+	    addressing_mode);
+    exit(-1);
+    break;
+  }
+  
   return 0;
 }
 
@@ -192,4 +400,6 @@ int gs4510_reset(struct mega65_machine_state *machine)
   machine->cpu_state.cpuport_ddr=0xff;
   
   gs4510_setup_hypervisor_entry(machine,0x40);
+
+  return 0;
 }
