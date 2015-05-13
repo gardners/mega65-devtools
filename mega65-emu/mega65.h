@@ -48,7 +48,9 @@ struct gs4510_cpu_state {
   // GS4510 MAP extensions
   unsigned char map_lo_mb;
   unsigned char map_hi_mb;
-
+  // Are we between MAP and EOM?
+  unsigned char mapping;
+  
   // XXX - Hypervisor and other stuff to add here
   int hypervisor_mode;
   

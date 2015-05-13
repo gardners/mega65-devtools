@@ -143,6 +143,16 @@ int gs4510_resolve_address(struct mega65_machine_state *machine,int short_addres
   return temp_address;
 }
 
+int gs4510_set_nz(struct mega65_machine_state *machine, int v)
+{
+  v&=0xff;
+  if (v) machine->cpu_state.flags&=~CPUFLAG_Z;
+  else machine->cpu_state.flags|=CPUFLAG_Z;
+  if (v&0x80) machine->cpu_state.flags|=CPUFLAG_N;
+  else machine->cpu_state.flags&=~CPUFLAG_N;
+  return 0;
+}
+
 int gs4510_next_instruction(struct mega65_machine_state *machine)
 {
 
@@ -354,6 +364,70 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
 	    addressing_mode);
     exit(-1);
     break;
+  }
+
+  // Do memory read if required. Also process all implied mode instructions
+  switch (instruction) {
+  case INSTR_BRK:
+    // XXX not yet implemented
+    break;
+  case INSTR_CLC: machine->cpu_state.flags&=~CPUFLAG_C; break;
+  case INSTR_CLD: machine->cpu_state.flags&=~CPUFLAG_D; break;
+  case INSTR_CLE: machine->cpu_state.flags&=~CPUFLAG_E; break;
+  case INSTR_CLI: machine->cpu_state.flags&=~CPUFLAG_I; break;
+  case INSTR_CLV: machine->cpu_state.flags&=~CPUFLAG_V; break;
+  case INSTR_DEX: gs4510_set_nz(machine,--machine->cpu_state.x); break;
+  case INSTR_DEY: gs4510_set_nz(machine,--machine->cpu_state.y); break;
+  case INSTR_DEZ: gs4510_set_nz(machine,--machine->cpu_state.z); break;
+  case INSTR_EOM: machine->cpu_state.mapping=0; break;
+  case INSTR_INX: gs4510_set_nz(machine,++machine->cpu_state.x); break;
+  case INSTR_INY: gs4510_set_nz(machine,++machine->cpu_state.y); break;
+  case INSTR_INZ: gs4510_set_nz(machine,++machine->cpu_state.z); break;
+  case INSTR_MAP:
+    machine->cpu_state.mapping=1;
+    check_interrupts=0;
+    if (machine->cpu_state.x==0x0f) machine->cpu_state.map_lo_mb=machine->cpu_state.a;
+    if (machine->cpu_state.y==0x0f) machine->cpu_state.map_hi_mb=machine->cpu_state.y;
+    machine->cpu_state.map_lo_offset =
+      ((machine->cpu_state.x&0xf)<<8)|machine->cpu_state.a;
+    machine->cpu_state.map_hi_offset =
+      ((machine->cpu_state.y&0xf)<<8)|machine->cpu_state.y;
+    machine->cpu_state.map_lo_bitmask=machine->cpu_state.x>>4;
+    machine->cpu_state.map_hi_bitmask=machine->cpu_state.z>>4;
+    break;
+  case INSTR_NEG:
+    machine->cpu_state.a=0xff-machine->cpu_state.a;
+    gs4510_set_nz(machine,machine->cpu_state.a);
+    break;
+  case INSTR_SEC: machine->cpu_state.flags|=CPUFLAG_C; break;
+  case INSTR_SED: machine->cpu_state.flags|=CPUFLAG_D; break;
+  case INSTR_SEE: machine->cpu_state.flags|=CPUFLAG_E; break;
+  case INSTR_SEI: machine->cpu_state.flags|=CPUFLAG_I; break;
+    // XXX - set CPU flags based on the following instructions
+  case INSTR_TAB: machine->cpu_state.b=machine->cpu_state.a; break;
+  case INSTR_TBA: machine->cpu_state.a=machine->cpu_state.b; break;
+  case INSTR_TAX: machine->cpu_state.x=machine->cpu_state.a; break;
+  case INSTR_TAY: machine->cpu_state.y=machine->cpu_state.a; break;
+  case INSTR_TAZ: machine->cpu_state.z=machine->cpu_state.a; break;
+  case INSTR_TSX: machine->cpu_state.x=machine->cpu_state.spl; break;
+  case INSTR_TSY: machine->cpu_state.y=machine->cpu_state.sph; break;
+  case INSTR_TXA: machine->cpu_state.a=machine->cpu_state.x; break;
+  case INSTR_TXS: machine->cpu_state.spl=machine->cpu_state.x; break;
+  case INSTR_TYA: machine->cpu_state.a=machine->cpu_state.y; break;
+  case INSTR_TYS: machine->cpu_state.sph=machine->cpu_state.y; break;
+  case INSTR_TZA: machine->cpu_state.a=machine->cpu_state.z; break;
+  case INSTR_STA:
+  case INSTR_STX:
+  case INSTR_STY:
+  case INSTR_STZ:
+    // no read for store instructions
+    break;
+  default:
+    // Do memory fetch
+    if (reg_addr!=-1) {
+      reg_addr = gs4510_resolve_address(machine,reg_vector,MEMORY_READ);
+      reg_value = gs4510_read_memory(machine,reg_addr)&0xff;
+    }
   }
   
   return 0;
