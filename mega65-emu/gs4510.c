@@ -167,17 +167,21 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
   int instruction = instruction_table[opcode].op;
   int addressing_mode = instruction_table[opcode].mode;
   int check_interrupts=1;
+  int store=0;
 
   int reg_value;
   int reg_addr;
   int reg_vector;
+  int reg_result;
+  int reg_store;
 
   // Get value for operation
   switch(addressing_mode) {
   case addressmode_:
-    // Implied mode -- nothing to do
+    // Implied or accumulator mode -- nothing much to do
     // XXX - Most implied mode instructions cannot be followed by an interrupt
     check_interrupts=0;
+    reg_value = machine->cpu_state.a;
     break;
   case addressmode_rr: // 8-bit relative mode
     // Fall through
@@ -366,23 +370,52 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
     break;
   }
 
-  // Do memory read if required. Also process all implied mode instructions
+  // Do memory read if required. Also process all implied mode instructions and other
+  // branch and utility instructions.
   switch (instruction) {
+  case INSTR_BBR:
+    break;
+  case INSTR_BBS:
+    break;
+  case INSTR_BCC:
+    break;
+  case INSTR_BCS:
+    break;
+  case INSTR_BEQ:
+    break;
+  case INSTR_BMI:
+    break;
+  case INSTR_BNE:
+    break;
+  case INSTR_BPL:
+    break;
+  case INSTR_BRA:
+    break;
   case INSTR_BRK:
     // XXX not yet implemented
     break;
-  case INSTR_CLC: machine->cpu_state.flags&=~CPUFLAG_C; break;
-  case INSTR_CLD: machine->cpu_state.flags&=~CPUFLAG_D; break;
-  case INSTR_CLE: machine->cpu_state.flags&=~CPUFLAG_E; break;
-  case INSTR_CLI: machine->cpu_state.flags&=~CPUFLAG_I; break;
-  case INSTR_CLV: machine->cpu_state.flags&=~CPUFLAG_V; break;
-  case INSTR_DEX: gs4510_set_nz(machine,--machine->cpu_state.x); break;
-  case INSTR_DEY: gs4510_set_nz(machine,--machine->cpu_state.y); break;
-  case INSTR_DEZ: gs4510_set_nz(machine,--machine->cpu_state.z); break;
-  case INSTR_EOM: machine->cpu_state.mapping=0; break;
-  case INSTR_INX: gs4510_set_nz(machine,++machine->cpu_state.x); break;
-  case INSTR_INY: gs4510_set_nz(machine,++machine->cpu_state.y); break;
-  case INSTR_INZ: gs4510_set_nz(machine,++machine->cpu_state.z); break;
+  case INSTR_BSR:
+    break;
+  case INSTR_BVC:
+    break;
+  case INSTR_BVS:
+    break;    
+  case INSTR_CLC: machine->cpu_state.flags&=~CPUFLAG_C; return 0;
+  case INSTR_CLD: machine->cpu_state.flags&=~CPUFLAG_D; return 0;
+  case INSTR_CLE: machine->cpu_state.flags&=~CPUFLAG_E; return 0;
+  case INSTR_CLI: machine->cpu_state.flags&=~CPUFLAG_I; return 0;
+  case INSTR_CLV: machine->cpu_state.flags&=~CPUFLAG_V; return 0;
+  case INSTR_DEX: gs4510_set_nz(machine,--machine->cpu_state.x); return 0;
+  case INSTR_DEY: gs4510_set_nz(machine,--machine->cpu_state.y); return 0;
+  case INSTR_DEZ: gs4510_set_nz(machine,--machine->cpu_state.z); return 0;
+  case INSTR_EOM: machine->cpu_state.mapping=0; return 0;
+  case INSTR_INX: gs4510_set_nz(machine,++machine->cpu_state.x); return 0;
+  case INSTR_INY: gs4510_set_nz(machine,++machine->cpu_state.y); return 0;
+  case INSTR_INZ: gs4510_set_nz(machine,++machine->cpu_state.z); return 0;
+  case INSTR_JMP:
+    break;
+  case INSTR_JSR:
+    break;
   case INSTR_MAP:
     machine->cpu_state.mapping=1;
     check_interrupts=0;
@@ -394,28 +427,48 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
       ((machine->cpu_state.y&0xf)<<8)|machine->cpu_state.y;
     machine->cpu_state.map_lo_bitmask=machine->cpu_state.x>>4;
     machine->cpu_state.map_hi_bitmask=machine->cpu_state.z>>4;
-    break;
+    return 0;
   case INSTR_NEG:
     machine->cpu_state.a=0xff-machine->cpu_state.a;
     gs4510_set_nz(machine,machine->cpu_state.a);
+    return 0;
+  case INSTR_PHA:
     break;
-  case INSTR_SEC: machine->cpu_state.flags|=CPUFLAG_C; break;
-  case INSTR_SED: machine->cpu_state.flags|=CPUFLAG_D; break;
-  case INSTR_SEE: machine->cpu_state.flags|=CPUFLAG_E; break;
-  case INSTR_SEI: machine->cpu_state.flags|=CPUFLAG_I; break;
+  case INSTR_PHX:
+    break;
+  case INSTR_PHY:
+    break;
+  case INSTR_PHZ:
+    break;
+  case INSTR_PLA:
+    break;
+  case INSTR_PLX:
+    break;
+  case INSTR_PLY:
+    break;
+  case INSTR_PLZ:
+    break;
+  case INSTR_RTI:
+    break;
+  case INSTR_RTS:
+    break;
+  case INSTR_SEC: machine->cpu_state.flags|=CPUFLAG_C; return 0;
+  case INSTR_SED: machine->cpu_state.flags|=CPUFLAG_D; return 0;
+  case INSTR_SEE: machine->cpu_state.flags|=CPUFLAG_E; return 0;
+  case INSTR_SEI: machine->cpu_state.flags|=CPUFLAG_I; return 0;
     // XXX - set CPU flags based on the following instructions
-  case INSTR_TAB: machine->cpu_state.b=machine->cpu_state.a; break;
-  case INSTR_TBA: machine->cpu_state.a=machine->cpu_state.b; break;
-  case INSTR_TAX: machine->cpu_state.x=machine->cpu_state.a; break;
-  case INSTR_TAY: machine->cpu_state.y=machine->cpu_state.a; break;
-  case INSTR_TAZ: machine->cpu_state.z=machine->cpu_state.a; break;
-  case INSTR_TSX: machine->cpu_state.x=machine->cpu_state.spl; break;
-  case INSTR_TSY: machine->cpu_state.y=machine->cpu_state.sph; break;
-  case INSTR_TXA: machine->cpu_state.a=machine->cpu_state.x; break;
-  case INSTR_TXS: machine->cpu_state.spl=machine->cpu_state.x; break;
-  case INSTR_TYA: machine->cpu_state.a=machine->cpu_state.y; break;
-  case INSTR_TYS: machine->cpu_state.sph=machine->cpu_state.y; break;
-  case INSTR_TZA: machine->cpu_state.a=machine->cpu_state.z; break;
+  case INSTR_TAB: machine->cpu_state.b=machine->cpu_state.a; return 0;
+  case INSTR_TBA: machine->cpu_state.a=machine->cpu_state.b; return 0;
+  case INSTR_TAX: machine->cpu_state.x=machine->cpu_state.a; return 0;
+  case INSTR_TAY: machine->cpu_state.y=machine->cpu_state.a; return 0;
+  case INSTR_TAZ: machine->cpu_state.z=machine->cpu_state.a; return 0;
+  case INSTR_TSX: machine->cpu_state.x=machine->cpu_state.spl; return 0;
+  case INSTR_TSY: machine->cpu_state.y=machine->cpu_state.sph; return 0;
+  case INSTR_TXA: machine->cpu_state.a=machine->cpu_state.x; return 0;
+  case INSTR_TXS: machine->cpu_state.spl=machine->cpu_state.x; return 0;
+  case INSTR_TYA: machine->cpu_state.a=machine->cpu_state.y; return 0;
+  case INSTR_TYS: machine->cpu_state.sph=machine->cpu_state.y; return 0;
+  case INSTR_TZA: machine->cpu_state.a=machine->cpu_state.z; return 0;
   case INSTR_STA:
   case INSTR_STX:
   case INSTR_STY:
@@ -428,6 +481,137 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
       reg_addr = gs4510_resolve_address(machine,reg_vector,MEMORY_READ);
       reg_value = gs4510_read_memory(machine,reg_addr)&0xff;
     }
+  }
+
+  // Now do instructions that operate on the read value
+  switch (instruction) {
+  case INSTR_ADC:
+    break;
+  case INSTR_AND:
+    break;
+  case INSTR_ASL:
+    reg_result = (reg_value<<1)&0xfe;
+    if (machine->cpu_state.flags&CPUFLAG_C) reg_result|=0x01;
+    if (reg_value&0x80) machine->cpu_state.flags|=CPUFLAG_C;
+    else machine->cpu_state.flags&=~CPUFLAG_C;
+    if (addressing_mode != addressmode_) {      
+      store = 1;
+      reg_store = reg_result;
+    } else
+      machine->cpu_state.a = reg_result;
+      gs4510_set_nz(machine,machine->cpu_state.a);
+    break;
+  case INSTR_ASR:
+    break;
+  case INSTR_BIT:
+    break;
+  case INSTR_CMP:
+    break;
+  case INSTR_CPX:
+    break;
+  case INSTR_CPY:
+    break;
+  case INSTR_CPZ:
+    break;
+  case INSTR_DEC:
+    break;
+  case INSTR_DEW:
+    break;
+  case INSTR_EOR:
+    break;
+  case INSTR_INC:
+    break;
+  case INSTR_INW:
+    break;
+  case INSTR_LDA:
+    machine->cpu_state.a = reg_value;
+    gs4510_set_nz(machine,reg_value);
+    break;
+  case INSTR_LDX:
+    machine->cpu_state.x = reg_value;
+    gs4510_set_nz(machine,reg_value);
+    break;
+  case INSTR_LDY:
+    machine->cpu_state.y = reg_value;
+    gs4510_set_nz(machine,reg_value);
+    break;
+  case INSTR_LDZ:
+    machine->cpu_state.z = reg_value;
+    gs4510_set_nz(machine,reg_value);
+    break;
+  case INSTR_LSR:
+    reg_result = (reg_value>>1);
+    if (reg_value&1) machine->cpu_state.flags|=CPUFLAG_C;
+    else machine->cpu_state.flags&=~CPUFLAG_C;
+    if (addressing_mode != addressmode_) {      
+      store = 1;
+      reg_store = reg_result;
+    } else
+      machine->cpu_state.a = reg_result;
+      gs4510_set_nz(machine,machine->cpu_state.a);
+    break;
+  case INSTR_ORA:
+    break;
+  case INSTR_RMB:
+    break;
+  case INSTR_ROL:
+    reg_result = (reg_value<<1)&0xfe;
+    if (machine->cpu_state.flags&CPUFLAG_C) reg_result|=0x01;
+    if (reg_value&0x80) machine->cpu_state.flags|=CPUFLAG_C;
+    else machine->cpu_state.flags&=~CPUFLAG_C;
+    if (addressing_mode != addressmode_) {      
+      store = 1;
+      reg_store = reg_result;
+    } else
+      machine->cpu_state.a = reg_result;
+      gs4510_set_nz(machine,machine->cpu_state.a);
+    break;
+  case INSTR_ROR:
+    reg_result = (reg_value>>1);
+    if (machine->cpu_state.flags&CPUFLAG_C) reg_result|=0x80;
+    if (reg_value&1) machine->cpu_state.flags|=CPUFLAG_C;
+    else machine->cpu_state.flags&=~CPUFLAG_C;
+    if (addressing_mode != addressmode_) {      
+      store = 1;
+      reg_store = reg_result;
+    } else
+      machine->cpu_state.a = reg_result;
+      gs4510_set_nz(machine,machine->cpu_state.a);
+    break;
+  case INSTR_ROW:
+    break;
+  case INSTR_SBC:
+    break;
+  case INSTR_SMB:
+    break;
+  case INSTR_STA:
+    store=1;
+    reg_store = machine->cpu_state.a;
+    break;
+  case INSTR_STX:
+    store=1;
+    reg_store = machine->cpu_state.x;
+    break;
+  case INSTR_STY:
+    store=1;
+    reg_store = machine->cpu_state.y;
+    break;
+  case INSTR_STZ:
+    store=1;
+    reg_store = machine->cpu_state.z;
+    break;
+  case INSTR_TRB:
+    break;
+  case INSTR_TSB:
+    break;
+  default:
+    break;
+  }
+
+  if (store) {
+    // Resolve store address
+
+    // store reg_store 
   }
   
   return 0;

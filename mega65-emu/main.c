@@ -47,6 +47,13 @@ int main(int argc,char **argv)
   // CPU triggers VIC-IV and other component cycles as apparent time elapses
   // by calling mega65_cpu_time_elapsed(nanoseconds)
   while(1) {
+    printf("PC=$%04x, A=$%02x, X=$%02x, Y=$%02x, Z= $%02x\n",
+	   machine->cpu_state.pc,
+	   machine->cpu_state.a,
+	   machine->cpu_state.x,
+	   machine->cpu_state.y,
+	   machine->cpu_state.z
+	   );
     gs4510_next_instruction(machine);
   }
 
