@@ -19,6 +19,9 @@
 -- *  02111-1307  USA.
 
 */
+
+#include "instructions.h"
+
 struct opcode {
   int op;
   int mode;
@@ -91,6 +94,7 @@ struct mega65_machine_state {
 
 extern struct mega65_machine_state *machine;
 extern struct opcode instruction_table[];
+extern struct instruction_name instruction_names[];
 
 struct mega65_machine_state *mega65_new_machine();
 int gs4510_next_instruction(struct mega65_machine_state *machine);

@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mega65.h"
-#include "instructions.h"
 
 int gs4510_wait_one_cycle(struct mega65_machine_state *machine)
 {
@@ -175,6 +174,9 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
   int reg_result;
   int reg_store;
 
+  printf("  opcode=$%02x, instructon=%s, long address=$%07x\n",
+	 opcode,instruction_names[instruction].name,pc_address);
+  
   // Get value for operation
   switch(addressing_mode) {
   case addressmode_:
