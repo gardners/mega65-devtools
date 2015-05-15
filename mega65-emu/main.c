@@ -35,6 +35,35 @@ int usage()
   exit(-1);
 }
 
+int load_file(char *filename,unsigned short *mem,int length)
+{
+  FILE *f=fopen(filename,"r");
+  if (!f) {
+    fprintf(stderr,"Could not load memory file '%s': could not open\n",filename);
+    exit(-1);
+  }
+
+  int count=0;
+
+  while(count<length) {
+    int c = fgetc(f);
+    if (c!=EOF) mem[count++]=c; else {
+      if (count<length) {
+	fprintf(stderr,"Could not load memory file '%s': too short",filename);
+	exit(-1);    
+      }
+      if (count>length) {
+	fprintf(stderr,"Could not load memory file '%s': too long",filename);
+	exit(-1);    
+      }
+    }
+  }
+
+  fclose(f);
+  return 0;
+  
+}
+
 int main(int argc,char **argv)
 {
   if (argc>1) usage();
@@ -43,6 +72,8 @@ int main(int argc,char **argv)
   machine = mega65_new_machine();
   assert(machine);
 
+  load_file("kickstart65gs.bin",machine->hypervisor,16*1024);
+  
   // Run machine.
   // CPU triggers VIC-IV and other component cycles as apparent time elapses
   // by calling mega65_cpu_time_elapsed(nanoseconds)
