@@ -78,12 +78,26 @@ int main(int argc,char **argv)
   // CPU triggers VIC-IV and other component cycles as apparent time elapses
   // by calling mega65_cpu_time_elapsed(nanoseconds)
   while(1) {
-    printf("PC=$%04x, A=$%02x, X=$%02x, Y=$%02x, Z= $%02x\n",
+    printf("PC=$%04x, A=$%02x, X=$%02x, Y=$%02x, Z= $%02x, "
+	   "MAPLO=$%02x:%c%c%c%c:$%02x, "
+	   "MAPHI=$%02x:%c%c%c%c:$%02x\n",
 	   machine->cpu_state.pc,
 	   machine->cpu_state.a,
 	   machine->cpu_state.x,
 	   machine->cpu_state.y,
-	   machine->cpu_state.z
+	   machine->cpu_state.z,
+	   machine->cpu_state.map_lo_mb,
+	   machine->cpu_state.map_lo_bitmask&1?'1':'0',
+	   machine->cpu_state.map_lo_bitmask&2?'1':'0',
+	   machine->cpu_state.map_lo_bitmask&4?'1':'0',
+	   machine->cpu_state.map_lo_bitmask&8?'1':'0',
+	   machine->cpu_state.map_lo_offset,
+	   machine->cpu_state.map_hi_mb,
+	   machine->cpu_state.map_hi_bitmask&1?'1':'0',
+	   machine->cpu_state.map_hi_bitmask&2?'1':'0',
+	   machine->cpu_state.map_hi_bitmask&4?'1':'0',
+	   machine->cpu_state.map_hi_bitmask&8?'1':'0',
+	   machine->cpu_state.map_hi_offset
 	   );
     gs4510_next_instruction(machine);
   }

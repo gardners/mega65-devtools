@@ -32,6 +32,8 @@ int gs4510_wait_one_cycle(struct mega65_machine_state *machine)
 
 int gs4510_read_memory(struct mega65_machine_state *machine, int long_address)
 {
+  printf("read $%07x, hypervisor=%d\n",
+	 long_address,machine->cpu_state.hypervisor_mode);
   if (long_address<0x1f800) {
     // shadow ram of chipram    
     machine->cpu_time+=CPUCLOCK_PS;
@@ -40,6 +42,11 @@ int gs4510_read_memory(struct mega65_machine_state *machine, int long_address)
     // First 2KB of colour RAM
     machine->cpu_time+=2*CPUCLOCK_PS;
     return machine->colourram[long_address&0x7ff];    
+  } else if (machine->cpu_state.hypervisor_mode&&
+	     (long_address>=0xfff8000)&&(long_address<=0xfffc000)) {
+    // hypervisor is in IO space, so two clocks required
+    machine->cpu_time+=2*CPUCLOCK_PS;
+    return machine->hypervisor[long_address&0x3fff];    
   } else if (long_address<0x40000) {
     // ROM RAM
     machine->cpu_time+=CPUCLOCK_PS;
@@ -418,6 +425,7 @@ int gs4510_next_instruction(struct mega65_machine_state *machine)
   case INSTR_INY: gs4510_set_nz(machine,++machine->cpu_state.y); return 0;
   case INSTR_INZ: gs4510_set_nz(machine,++machine->cpu_state.z); return 0;
   case INSTR_JMP:
+    machine->cpu_state.pc=reg_addr;
     break;
   case INSTR_JSR:
     break;
@@ -661,6 +669,8 @@ int gs4510_reset(struct mega65_machine_state *machine)
   
   machine->cpu_state.cpuport_value=0x35;
   machine->cpu_state.cpuport_ddr=0xff;
+
+  machine->cpu_state.hypervisor_mode=1;
   
   gs4510_setup_hypervisor_entry(machine,0x40);
 
