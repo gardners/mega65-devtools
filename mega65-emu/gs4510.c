@@ -63,6 +63,9 @@ int gs4510_resolve_address(struct mega65_machine_state *machine,int short_addres
 
   int temp_address = short_address & 0xfff;
 
+  printf("  short addr=$%04x, temp_addr=$%04x, blocknum=%d, lhc=$%x\n",
+	 short_address, temp_address, blocknum,lhc);
+  
   if (blocknum==13) {
     if (writeP) {
       switch(lhc) {
@@ -108,7 +111,7 @@ int gs4510_resolve_address(struct mega65_machine_state *machine,int short_addres
   }
 
   // Memory remapping
-  int b=short_address>>14;
+  int b=3-(short_address>>14);
   if (short_address&0x8000) {
     if (machine->cpu_state.map_hi_bitmask&(1<<b)) {
       temp_address&=0xff;
